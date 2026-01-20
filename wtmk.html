@@ -171,6 +171,7 @@
             padding: 2px 8px;
             border-radius: 12px;
             font-size: 12px;
+            margin-top: 2px;
         }
         
         input[type="range"] {
@@ -180,6 +181,7 @@
             background: #e9ecef;
             outline: none;
             -webkit-appearance: none;
+            margin-top: 10px;
         }
         
         input[type="range"]::-webkit-slider-thumb {
@@ -329,14 +331,6 @@
             color: white;
             cursor: pointer;
             user-select: none;
-            padding: 10px;
-            border-radius: 50%;
-            background-color: rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s;
-        }
-        
-        #preview-left-arrow:hover, #preview-right-arrow:hover {
-            background-color: rgba(0, 0, 0, 0.6);
         }
         
         #preview-left-arrow {
@@ -355,14 +349,6 @@
             color: white;
             cursor: pointer;
             user-select: none;
-            padding: 5px 10px;
-            border-radius: 50%;
-            background-color: rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s;
-        }
-        
-        #preview-close:hover {
-            background-color: rgba(0, 0, 0, 0.6);
         }
         
         @media (max-width: 768px) {
@@ -410,7 +396,7 @@
         <div class="options">
             <div class="option-group">
                 <label for="font-size">文字大小（像素）</label>
-                <input type="number" id="font-size" value="5" min="1" max="100">
+                <input type="number" id="font-size" value="50" min="1" max="100">
             </div>
             <div class="option-group">
                 <label for="rotation">旋转角度（度）</label>
@@ -434,11 +420,11 @@
             </div>
             <div class="option-group">
                 <label for="horizontal-spacing">水平间距（像素）</label>
-                <input type="number" id="horizontal-spacing" value="20" min="10" step="10">
+                <input type="number" id="horizontal-spacing" value="200" min="10" step="10">
             </div>
             <div class="option-group">
                 <label for="vertical-spacing">行间距（像素）</label>
-                <input type="number" id="vertical-spacing" value="20" min="10" step="10">
+                <input type="number" id="vertical-spacing" value="200" min="10" step="10">
             </div>
             <div class="option-group">
                 <label for="font-color">字体颜色</label>
@@ -485,7 +471,7 @@
                     <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                     <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                 </svg>
-                下载ZIP包
+                打包下载
             </button>
         </div>
     </div>
@@ -659,12 +645,7 @@
                                 // 如果没有水印，使用原始图片
                                 const canvasIndex = parseInt(this.id.split('-')[1]);
                                 if (!isNaN(canvasIndex)) {
-                                    const originalCanvas = document.createElement('canvas');
-                                    originalCanvas.width = img.width;
-                                    originalCanvas.height = img.height;
-                                    const tempCtx = originalCanvas.getContext('2d');
-                                    tempCtx.drawImage(img, 0, 0);
-                                    openPreviewFromOriginal(originalCanvas, file.name);
+                                    openPreviewOriginal(canvasIndex);
                                 }
                             }
                         });
@@ -805,10 +786,24 @@
             document.getElementById('preview-modal').style.display = 'flex';
         }
         
-        function openPreviewFromOriginal(canvas, filename) {
-            // 创建临时预览，当没有水印时使用
+        function openPreviewOriginal(index) {
+            if (originalImages.length === 0) return;
+            
+            // 确保索引有效
+            if (index < 0 || index >= originalImages.length) {
+                index = 0;
+            }
+            
+            currentIndex = index;
+            const imageInfo = originalImages[currentIndex];
+            const canvas = document.createElement('canvas');
+            canvas.width = imageInfo.element.width;
+            canvas.height = imageInfo.element.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(imageInfo.element, 0, 0);
+            
             document.getElementById('preview-image').src = canvas.toDataURL('image/png');
-            document.getElementById('preview-title').textContent = filename;
+            document.getElementById('preview-title').textContent = imageInfo.filename;
             document.getElementById('preview-modal').style.display = 'flex';
         }
         
@@ -825,17 +820,29 @@
         }
         
         function showPrevImage() {
-            if (watermarkedCanvases.length === 0) return;
-            
-            currentIndex = (currentIndex - 1 + watermarkedCanvases.length) % watermarkedCanvases.length;
-            updatePreview();
+            // 检查是否处于水印图片预览模式
+            if (watermarkedCanvases.length > 0) {
+                // 水印图片预览模式
+                currentIndex = (currentIndex - 1 + watermarkedCanvases.length) % watermarkedCanvases.length;
+                updatePreview();
+            } else if (originalImages.length > 0) {
+                // 原始图片预览模式，在原始图片间切换
+                currentIndex = (currentIndex - 1 + originalImages.length) % originalImages.length;
+                openPreviewOriginal(currentIndex);
+            }
         }
         
         function showNextImage() {
-            if (watermarkedCanvases.length === 0) return;
-            
-            currentIndex = (currentIndex + 1) % watermarkedCanvases.length;
-            updatePreview();
+            // 检查是否处于水印图片预览模式
+            if (watermarkedCanvases.length > 0) {
+                // 水印图片预览模式
+                currentIndex = (currentIndex + 1) % watermarkedCanvases.length;
+                updatePreview();
+            } else if (originalImages.length > 0) {
+                // 原始图片预览模式，在原始图片间切换
+                currentIndex = (currentIndex + 1) % originalImages.length;
+                openPreviewOriginal(currentIndex);
+            }
         }
         
         // 预览模态框事件监听
